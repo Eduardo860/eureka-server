@@ -1,0 +1,51 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: apigateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: productos-service
+          uri: lb://productservice
+          predicates:
+            - Path=/productos/**
+          filters:
+            - StripPrefix=1
+            - PrefixPath=/productos-api
+        
+        - id: ordenes-service
+          uri: lb://orderservice
+          predicates:
+            - Path=/ordenes/**
+          filters:
+            - StripPrefix=1
+            - PrefixPath=/ordenes-api
+        
+        - id: pagos-service
+          uri: lb://paymentservice
+          predicates:
+            - Path=/pagos/**
+          filters:
+            - StripPrefix=1
+            - PrefixPath=/pagos-api
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-server:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    hostname: apigateway
+
+logging:
+  level:
+    '[org.springframework.cloud.gateway]': DEBUG
+    '[reactor.netty]': DEBUG
