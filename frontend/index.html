@@ -17,6 +17,8 @@
       <button class="tab active" onclick="showTab('productos', this)">📦 Productos</button>
       <button class="tab" onclick="showTab('ordenes', this)">📋 Órdenes</button>
       <button class="tab" onclick="showTab('pagos', this)">💳 Pagos</button>
+      <button class="tab" onclick="showTab('broker', this)">🔄 Broker</button>
+      <button class="tab" onclick="showTab('health', this)">🏥 Health</button>
       <button class="tab" onclick="showTab('logs', this)">📊 Logs</button>
     </nav>
 
@@ -171,6 +173,97 @@
       </div>
 
       <div id="resp-pagos" class="response"></div>
+    </section>
+
+    <!-- BROKER MESSAGE BE -->
+    <section id="tab-broker" class="tab-content">
+      <div class="card">
+        <h2>⚡ Trigger Retry — Producto</h2>
+        <p class="hint">Publica un mensaje en Kafka (product_retry_jobs). El listener lo guarda en PostgreSQL y el scheduler reintenta la operación.</p>
+        <div class="form-grid">
+          <input id="br-product-entityid" type="text" placeholder="Entity ID (productoId)" />
+          <select id="br-product-action">
+            <option value="UPDATE">UPDATE</option>
+            <option value="CREATE">CREATE</option>
+            <option value="DELETE">DELETE</option>
+          </select>
+        </div>
+        <textarea id="br-product-data" rows="3" placeholder='{"name":"Laptop Pro","price":1299.99,"stock":5}'></textarea>
+        <button onclick="triggerRetry('product')">🚀 Enviar a Kafka</button>
+      </div>
+
+      <div class="card">
+        <h2>⚡ Trigger Retry — Orden</h2>
+        <p class="hint">Publica un mensaje en Kafka (order_retry_jobs).</p>
+        <div class="form-grid">
+          <input id="br-order-entityid" type="text" placeholder="Entity ID (ordenId)" />
+          <select id="br-order-action">
+            <option value="UPDATE">UPDATE</option>
+            <option value="CREATE">CREATE</option>
+            <option value="DELETE">DELETE</option>
+          </select>
+        </div>
+        <textarea id="br-order-data" rows="3" placeholder='{"status":"CONFIRMED"}'></textarea>
+        <button onclick="triggerRetry('order')">🚀 Enviar a Kafka</button>
+      </div>
+
+      <div class="card">
+        <h2>⚡ Trigger Retry — Pago</h2>
+        <p class="hint">Publica un mensaje en Kafka (payment_retry_jobs).</p>
+        <div class="form-grid">
+          <input id="br-payment-entityid" type="text" placeholder="Entity ID (pagoId)" />
+          <select id="br-payment-action">
+            <option value="UPDATE">UPDATE</option>
+            <option value="CREATE">CREATE</option>
+            <option value="DELETE">DELETE</option>
+          </select>
+        </div>
+        <textarea id="br-payment-data" rows="3" placeholder='{"status":"COMPLETED"}'></textarea>
+        <button onclick="triggerRetry('payment')">🚀 Enviar a Kafka</button>
+      </div>
+
+      <div class="card">
+        <h2>📋 Listar Retry Jobs</h2>
+        <p class="hint">Jobs almacenados en PostgreSQL.</p>
+        <div class="inline-form">
+          <button onclick="listarJobs('products')">📦 Productos</button>
+          <button onclick="listarJobs('orders')">📋 Órdenes</button>
+          <button onclick="listarJobs('payments')">💳 Pagos</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>🔍 Obtener Job de Producto por ID</h2>
+        <div class="inline-form">
+          <input id="br-job-id" type="text" placeholder="UUID del job" />
+          <button onclick="getJobById()">🔍 Buscar</button>
+        </div>
+      </div>
+
+      <div id="resp-broker" class="response"></div>
+    </section>
+
+    <!-- HEALTH CHECKS -->
+    <section id="tab-health" class="tab-content">
+      <div class="card">
+        <h2>🌐 API Gateway</h2>
+        <p class="hint">GET http://localhost:8080/actuator/health</p>
+        <button onclick="checkServiceHealth('gateway')">🔍 Verificar</button>
+      </div>
+
+      <div class="card">
+        <h2>🔄 Broker Message BE</h2>
+        <p class="hint">GET http://localhost:8084/actuator/health</p>
+        <button onclick="checkServiceHealth('broker')">🔍 Verificar</button>
+      </div>
+
+      <div class="card">
+        <h2>🗂️ Eureka — Apps Registradas</h2>
+        <p class="hint">GET http://localhost:8761/eureka/apps (JSON)</p>
+        <button onclick="getEurekaApps()">📋 Ver Apps</button>
+      </div>
+
+      <div id="resp-health" class="response"></div>
     </section>
 
     <!-- LOGS -->

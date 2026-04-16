@@ -14,6 +14,20 @@ app.use('/api', createProxyMiddleware({
   pathRewrite: { '^/api': '' }
 }));
 
+// Proxy /broker/* → Broker Message BE
+app.use('/broker', createProxyMiddleware({
+  target: 'http://localhost:8084',
+  changeOrigin: true,
+  pathRewrite: { '^/broker': '' }
+}));
+
+// Proxy /eureka-proxy/* → Eureka Server
+app.use('/eureka-proxy', createProxyMiddleware({
+  target: 'http://localhost:8761',
+  changeOrigin: true,
+  pathRewrite: { '^/eureka-proxy': '' }
+}));
+
 // ── Log groups y contenedores permitidos (evita command injection) ──
 const LOG_GROUPS = [
   'producto-log-group', 'ordenes-log-group', 'pagos-log-group',

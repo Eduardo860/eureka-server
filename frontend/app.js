@@ -1,5 +1,6 @@
 // ── Constantes ────────────────────────────────────────────────
-const API = '/api';
+const API    = '/api';
+const BROKER = '/broker';
 
 // ── Utilidades ────────────────────────────────────────────────
 function escHtml(v) {
@@ -253,6 +254,69 @@ async function cargarCloudWatchLogs() {
   }
 }
 
+
+// ── Broker request helper ─────────────────────────────────────
+async function brokerReq(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(BROKER + path, opts);
+  const text = await res.text();
+  try { return { ok: res.ok, data: JSON.parse(text) }; }
+  catch { return { ok: res.ok, data: text }; }
+}
+
+// ── Broker ────────────────────────────────────────────────────
+async function triggerRetry(type) {
+  const entityId = document.getElementById(`br-${type}-entityid`).value.trim();
+  const action   = document.getElementById(`br-${type}-action`).value;
+  const rawData  = document.getElementById(`br-${type}-data`).value.trim();
+  if (!entityId) return show('resp-broker', 'Ingresa un Entity ID.', true);
+  let requestData;
+  try { requestData = rawData ? JSON.parse(rawData) : {}; }
+  catch { return show('resp-broker', 'El campo Request Data no es JSON válido.', true); }
+  show('resp-broker', 'Enviando a Kafka...');
+  const { ok, data } = await brokerReq('POST', `/retry/trigger/${type}`, { entityId, action, requestData });
+  show('resp-broker', data, !ok);
+}
+
+async function listarJobs(type) {
+  show('resp-broker', 'Cargando...');
+  const { ok, data } = await brokerReq('GET', `/retry/${type}`);
+  show('resp-broker', data, !ok);
+}
+
+async function getJobById() {
+  const id = document.getElementById('br-job-id').value.trim();
+  if (!id) return show('resp-broker', 'Ingresa un UUID de job.', true);
+  show('resp-broker', 'Buscando...');
+  const { ok, data } = await brokerReq('GET', `/retry/products/${id}`);
+  show('resp-broker', data, !ok);
+}
+
+// ── Health Checks ─────────────────────────────────────────────
+async function checkServiceHealth(service) {
+  show('resp-health', 'Verificando...');
+  if (service === 'broker') {
+    const { ok, data } = await brokerReq('GET', '/actuator/health');
+    show('resp-health', data, !ok);
+  } else {
+    const { ok, data } = await request('GET', '/actuator/health');
+    show('resp-health', data, !ok);
+  }
+}
+
+async function getEurekaApps() {
+  show('resp-health', 'Cargando apps de Eureka...');
+  try {
+    const res = await fetch('/eureka-proxy/eureka/apps', { headers: { Accept: 'application/json' } });
+    const text = await res.text();
+    let parsed;
+    try { parsed = JSON.parse(text); } catch { parsed = text; }
+    show('resp-health', parsed, !res.ok);
+  } catch (err) {
+    show('resp-health', 'Error: ' + String(err), true);
+  }
+}
 
 // ── Init ──────────────────────────────────────────────────────
 checkHealth();
