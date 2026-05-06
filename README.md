@@ -1,6 +1,6 @@
-# Examen Primer Parcial - Microservicios
+# Examen Segundo Parcial - Microservicios
 
-Sistema completo de microservicios con Spring Boot, MongoDB y CloudWatch en Docker.
+Sistema completo de microservicios con Spring Boot, MongoDB Atlas, PostgreSQL, Kafka y CloudWatch en Docker.
 
 ## 🚀 Ejecución
 
@@ -71,11 +71,11 @@ docker-compose up --build
 
 ## 📊 Bases de datos
 
-- **MongoDB Productos**: puerto 27017
-- **MongoDB Órdenes**: puerto 27018
-- **MongoDB Pagos**: puerto 27019
-
-Credenciales: `root` / `rootpassword`
+### MongoDB Atlas (Cloud)
+- **Cluster**: cluster.xogfhlf.mongodb.net
+- **Base de datos Productos**: productos_db
+- **Base de datos Órdenes**: ordenes_db
+- **Base de datos Pagos**: pagos_db
 
 ## 📝 Documentación
 
@@ -389,3 +389,19 @@ docker ps | grep mongo
 ## 👨‍💼 Arquitecto
 
 Diseño y configuración: Arquitecto Senior de Microservicios
+
+
+
+
+
+
+## Prueba de kafka QUEUE
+
+# Deshabilitar
+
+docker exec infra-productservice sh -c "echo '0.0.0.0 cluster.xogfhlf.mongodb.net' >> /etc/hosts"
+
+# Restaurar
+docker restart infra-productservice
+
+

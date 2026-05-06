@@ -124,4 +124,38 @@ public class ProductController {
             return ResponseEntity.status(503).body(err(503, "Operación encolada para reintento: " + e.getMessage()));
         }
     }
+
+    @PutMapping("/{id}/reducir-stock")
+    public ResponseEntity<Map<String, Object>> reduceStock(@PathVariable String id, @RequestBody Map<String, Integer> request) {
+        logger.info("Reducing stock for product: {}", id);
+        try {
+            Optional<Product> productOpt = productRepository.findById(id);
+            if (!productOpt.isPresent()) {
+                logger.warn("Product not found: {}", id);
+                return ResponseEntity.status(404).body(err(404, "Producto no encontrado: " + id));
+            }
+            
+            Product product = productOpt.get();
+            Integer quantity = request.get("quantity");
+            
+            if (quantity == null || quantity <= 0) {
+                return ResponseEntity.badRequest().body(err(400, "Cantidad inválida"));
+            }
+            
+            if (product.getStock() < quantity) {
+                logger.warn("Insufficient stock for product {}: available={}, requested={}", id, product.getStock(), quantity);
+                return ResponseEntity.badRequest().body(err(400, "Stock insuficiente. Disponible: " + product.getStock()));
+            }
+            
+            product.setStock(product.getStock() - quantity);
+            Product updatedProduct = productRepository.save(product);
+            
+            logger.info("Stock reduced for product {}: new stock={}", id, updatedProduct.getStock());
+            return ResponseEntity.ok(ok(updatedProduct));
+            
+        } catch (Exception e) {
+            logger.error("Failed to reduce stock for product {}: {}", id, e.getMessage());
+            return ResponseEntity.status(500).body(err(500, "Error al reducir stock: " + e.getMessage()));
+        }
+    }
 }

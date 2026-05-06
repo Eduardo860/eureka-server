@@ -12,6 +12,7 @@ public class Payment {
     private Double amount;
     private String status; // PENDING, COMPLETED, FAILED, REFUNDED
     private String paymentMethod;
+    private String customerEmail;
     private LocalDateTime createdAt;
 
     public Payment() {
@@ -72,5 +73,13 @@ public class Payment {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getCustomerEmail() {
+        return customerEmail;
+    }
+
+    public void setCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
     }
 }

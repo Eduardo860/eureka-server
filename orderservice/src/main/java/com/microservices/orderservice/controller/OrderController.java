@@ -60,6 +60,10 @@ public class OrderController {
         try {
             Order savedOrder = orderRepository.save(order);
             logger.info("Order created successfully with ID: {}", savedOrder.getId());
+            
+            // Publicar evento inventory_update_events
+            publishInventoryUpdateEvent(savedOrder);
+            
             return ResponseEntity.ok(ok(savedOrder));
         } catch (Exception e) {
             logger.error("Failed to create order, publishing to Kafka: {}", e.getMessage());
@@ -98,6 +102,10 @@ public class OrderController {
                 existingOrder.setStatus(status);
                 Order updatedOrder = orderRepository.save(existingOrder);
                 logger.info("Order {} status updated successfully", id);
+                
+                // Publicar evento order_status_changed_events
+                publishOrderStatusChangedEvent(updatedOrder, status);
+                
                 return ResponseEntity.ok(ok(updatedOrder));
             }
             logger.warn("Order not found for status update: {}", id);
@@ -108,6 +116,85 @@ public class OrderController {
             data.put("status", status);
             publishToKafka(id, "UPDATE", data);
             return ResponseEntity.status(503).body(err(503, "Operación encolada para reintento: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> updateOrder(@PathVariable String id, @RequestBody Order order) {
+        logger.info("Updating order: {}", id);
+        try {
+            Optional<Order> existingOrder = orderRepository.findById(id);
+            if (existingOrder.isPresent()) {
+                Order current = existingOrder.get();
+                
+                // Verificar si afecta inventario
+                boolean affectsInventory = hasInventoryChanges(current, order);
+                
+                // Actualizar campos
+                if (order.getTotalAmount() != null) current.setTotalAmount(order.getTotalAmount());
+                if (order.getStatus() != null) current.setStatus(order.getStatus());
+                if (order.getCustomerEmail() != null) current.setCustomerEmail(order.getCustomerEmail());
+                if (order.getProducts() != null) current.setProducts(order.getProducts());
+                
+                Order updatedOrder = orderRepository.save(current);
+                logger.info("Order {} updated successfully", id);
+                
+                // Si afecta inventario, publicar evento
+                if (affectsInventory) {
+                    publishInventoryUpdateEvent(updatedOrder);
+                }
+                
+                return ResponseEntity.ok(ok(updatedOrder));
+            }
+            logger.warn("Order not found: {}", id);
+            return ResponseEntity.status(404).body(err(404, "Orden no encontrada: " + id));
+        } catch (Exception e) {
+            logger.error("Failed to update order {}: {}", id, e.getMessage());
+            publishToKafka(id, "UPDATE", order);
+            return ResponseEntity.status(503).body(err(503, "Operación encolada para reintento: " + e.getMessage()));
+        }
+    }
+
+    private boolean hasInventoryChanges(Order current, Order updated) {
+        if (updated.getProducts() == null) return false;
+        if (current.getProducts() == null) return true;
+        return !current.getProducts().equals(updated.getProducts());
+    }
+
+    private void publishInventoryUpdateEvent(Order order) {
+        try {
+            if (order.getProducts() == null || order.getProducts().isEmpty()) {
+                logger.warn("No products to update inventory for order: {}", order.getId());
+                return;
+            }
+            
+            Map<String, Object> event = new HashMap<>();
+            event.put("id", java.util.UUID.randomUUID().toString());
+            event.put("orderId", order.getId());
+            event.put("products", order.getProducts());
+            event.put("status", "PENDING");
+            event.put("timestamp", java.time.LocalDateTime.now().toString());
+            
+            kafkaTemplate.send("inventory_update_events", event);
+            logger.info("Published inventory_update_events for order: {}", order.getId());
+        } catch (Exception e) {
+            logger.error("Failed to publish inventory_update_events: {}", e.getMessage());
+        }
+    }
+
+    private void publishOrderStatusChangedEvent(Order order, String newStatus) {
+        try {
+            Map<String, Object> event = new HashMap<>();
+            event.put("id", java.util.UUID.randomUUID().toString());
+            event.put("orderId", order.getId());
+            event.put("newStatus", newStatus);
+            event.put("customerEmail", order.getCustomerEmail());
+            event.put("timestamp", java.time.LocalDateTime.now().toString());
+            
+            kafkaTemplate.send("order_status_changed_events", event);
+            logger.info("Published order_status_changed_events for order: {}", order.getId());
+        } catch (Exception e) {
+            logger.error("Failed to publish order_status_changed_events: {}", e.getMessage());
         }
     }
 }

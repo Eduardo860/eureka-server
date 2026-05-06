@@ -61,11 +61,53 @@ public class PaymentController {
             payment.setStatus("COMPLETED");
             Payment savedPayment = paymentRepository.save(payment);
             logger.info("Payment processed successfully with ID: {}", savedPayment.getId());
+            
+            // Publicar evento payment_received_events
+            publishPaymentReceivedEvent(savedPayment);
+            
             return ResponseEntity.ok(ok(savedPayment));
         } catch (Exception e) {
             logger.error("Failed to process payment, publishing to Kafka: {}", e.getMessage());
             publishToKafka(payment.getOrderId(), "CREATE", payment);
             return ResponseEntity.status(503).body(err(503, "Operación encolada para reintento: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping
+    public ResponseEntity<Map<String, Object>> createPayment(@RequestBody Payment payment) {
+        logger.info("Creating payment for order: {} with amount: {}", payment.getOrderId(), payment.getAmount());
+        try {
+            if (payment.getStatus() == null || payment.getStatus().isEmpty()) {
+                payment.setStatus("COMPLETED");
+            }
+            Payment savedPayment = paymentRepository.save(payment);
+            logger.info("Payment created successfully with ID: {}", savedPayment.getId());
+            
+            // Publicar evento payment_received_events
+            publishPaymentReceivedEvent(savedPayment);
+            
+            return ResponseEntity.ok(ok(savedPayment));
+        } catch (Exception e) {
+            logger.error("Failed to create payment, publishing to Kafka: {}", e.getMessage());
+            publishToKafka(payment.getOrderId(), "CREATE", payment);
+            return ResponseEntity.status(503).body(err(503, "Operación encolada para reintento: " + e.getMessage()));
+        }
+    }
+
+    private void publishPaymentReceivedEvent(Payment payment) {
+        try {
+            Map<String, Object> event = new HashMap<>();
+            event.put("id", java.util.UUID.randomUUID().toString());
+            event.put("orderId", payment.getOrderId());
+            event.put("amount", payment.getAmount());
+            event.put("status", "RECEIVED");
+            event.put("customerEmail", payment.getCustomerEmail());
+            event.put("timestamp", java.time.LocalDateTime.now().toString());
+            
+            kafkaTemplate.send("payment_received_events", event);
+            logger.info("Published payment_received_events for order: {}", payment.getOrderId());
+        } catch (Exception e) {
+            logger.error("Failed to publish payment_received_events: {}", e.getMessage());
         }
     }
 

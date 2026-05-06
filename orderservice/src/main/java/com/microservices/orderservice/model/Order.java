@@ -11,8 +11,38 @@ public class Order {
     private Long userId;
     private String productId;
     private Double totalAmount;
-    private String status; // PENDING, CONFIRMED, CANCELLED
+    private String status; // PENDING, CONFIRMED, PAGADO, ENVIADO, CANCELLED
+    private String customerEmail;
+    private java.util.List<Product> products;
     private LocalDateTime createdAt;
+
+    public static class Product {
+        private String productId;
+        private Integer quantity;
+
+        public Product() {}
+
+        public Product(String productId, Integer quantity) {
+            this.productId = productId;
+            this.quantity = quantity;
+        }
+
+        public String getProductId() {
+            return productId;
+        }
+
+        public void setProductId(String productId) {
+            this.productId = productId;
+        }
+
+        public Integer getQuantity() {
+            return quantity;
+        }
+
+        public void setQuantity(Integer quantity) {
+            this.quantity = quantity;
+        }
+    }
 
     public Order() {
         this.createdAt = LocalDateTime.now();
@@ -72,5 +102,21 @@ public class Order {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getCustomerEmail() {
+        return customerEmail;
+    }
+
+    public void setCustomerEmail(String customerEmail) {
+        this.customerEmail = customerEmail;
+    }
+
+    public java.util.List<Product> getProducts() {
+        return products;
+    }
+
+    public void setProducts(java.util.List<Product> products) {
+        this.products = products;
     }
 }
